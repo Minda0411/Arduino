@@ -1,0 +1,75 @@
+/*  Connects to the home WiFi network
+    Asks some network parameters
+    Starts WiFi server with fix IP and listens
+    Receives and sends messages to the client
+    Communicates: wifi_client_01.ino
+*/
+#include <SPI.h>
+#include <ESP8266WiFi.h>
+
+byte ledPin = 2;
+char ssid[] = "minda0411"; //"**********";           // SSID of your home WiFi
+char pass[] = "0225058922"; //"*********";
+WiFiServer server(80);         //預設port不要動它
+
+IPAddress ip(192, 168, 43, 2);         // IP address of the server
+IPAddress gateway( 192, 168, 43, 1);        // gateway of your network
+IPAddress subnet(255, 255, 255, 0);       // subnet mask of your network
+
+void setup() {
+  Serial.begin(115200);                   // only for debug
+  WiFi.config(ip, gateway, subnet);       // forces to use the fix IP
+  WiFi.begin(ssid, pass);                 // connects to the WiFi router
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  server.begin();                         // starts the server
+  Serial.println("Connected to wifi");
+  Serial.print("Status: "); Serial.println(WiFi.status());  // some parameters from the network
+  Serial.print("IP: ");     Serial.println(WiFi.localIP());
+  Serial.print("Subnet: "); Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway: "); Serial.println(WiFi.gatewayIP());
+  Serial.print("SSID: "); Serial.println(WiFi.SSID());
+  Serial.print("Signal: "); Serial.println(WiFi.RSSI());
+  Serial.print("Networks: "); Serial.println(WiFi.scanNetworks());
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop () {
+  WiFiClient client = server.available();
+  if (client) {
+    if (client.connected()) {
+      digitalWrite(ledPin, LOW);  // to show the communication only (inverted logic)
+      Serial.println(".");
+      String request = client.readStringUntil('\r');    // receives the message from the client
+      Serial.print("From client: ");
+      Serial.println(request);
+      client.flush();
+      
+      if (Serial.available()) {
+        int Char = Serial.read();
+        //Serial.println(Char);
+        
+        if (Char == 49) {//input1
+          client.println("Yes,I am ready. Please Blink one times");
+          
+        } else if (Char == 50) {//input2
+          client.println("Yes,I am ready. Please Blink two times");
+          
+        } else if (Char == 51) {//input3
+          client.println("Yes,I am ready. Please Blink three times");
+        }
+      }
+      //      client.println("1");
+      //      delay(1000);
+      //      client.println("2");
+      //      delay(1000);
+      //      client.println("3");
+      //      delay(1000);
+
+      
+    }
+    client.stop();                // tarminates the connection with the client
+  }
+}
